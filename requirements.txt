@@ -1,0 +1,11 @@
+fastapi
+python-dotenv
+langchain
+langchain-core
+langchain-community
+uvicorn
+langchainhub
+faiss-cpu
+langchain-fireworks
+langchain-cohere
+poetry

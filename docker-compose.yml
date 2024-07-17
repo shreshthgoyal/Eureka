@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "3015:3015"
+    volumes:
+      - .:/app
+    environment:
+      - MODULE_NAME=main
+      - VARIABLE_NAME=app
+      - PORT=3015
+    command: uvicorn src.main:app --reload --host 0.0.0.0 --port 3015
