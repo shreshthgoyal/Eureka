@@ -1,4 +1,4 @@
-# Customer Query Resolver
+# Woodpecker
 
 ## Install and Run
 
@@ -11,6 +11,8 @@ $ source venv/bin/activate
 $ python -m pip install -r requirements.txt
 $ sh entrypoint.sh
 ````
+It will start at 8000 port.
+
 or you can just start it up with docker
 
 ````
@@ -19,6 +21,3 @@ $ docker-compose up
 ````
 It will start at 3015 port.
 
-
-Confluence: [Link](https://curefit.atlassian.net/wiki/pages/resumedraft.action?draftId=2727870488)
-# WoodPecker

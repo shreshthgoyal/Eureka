@@ -6,4 +6,3 @@ class CultQueryInput(BaseModel):
 
 class CultQueryOutput(BaseModel):
     message: str
-    actions: Optional[List[dict]] = None
