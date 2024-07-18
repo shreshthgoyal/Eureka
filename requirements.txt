@@ -8,4 +8,12 @@ langchainhub
 faiss-cpu
 langchain-fireworks
 langchain-cohere
-poetry
+pypdf
+transformers
+pandas 
+PyPDF2
+tensorflow
+tf-keras
+sumy
+spacy
+scikit-learn
