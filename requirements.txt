@@ -17,3 +17,4 @@ tf-keras
 sumy
 spacy
 scikit-learn
+streamlit
