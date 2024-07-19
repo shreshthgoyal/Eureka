@@ -1,8 +1,22 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 
-class CultQueryInput(BaseModel):
+class QueryInput(BaseModel):
     input: str
 
-class CultQueryOutput(BaseModel):
+class DocumentInfo(BaseModel):
+    source: str
+    row: Optional[int] = None
+    page: Optional[int] = None
+    relevance_score: float
+
+class DocumentSummary(BaseModel):
+    filename: str
+    summary: str
+    keywords: List[str]
+    classification: str
+    
+class QueryOutput(BaseModel):
     message: str
+    documents: List[DocumentInfo]
+    info: List[DocumentSummary]

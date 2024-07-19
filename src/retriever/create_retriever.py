@@ -1,10 +1,9 @@
-# application.py
 import logging
 from logging_config import setup_logging
 import os
 import dotenv
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
-# from langchain_cohere import CohereRerank
+from langchain_cohere import CohereRerank
 from src.retriever.config import RETRIEVER_K
 
 setup_logging()
@@ -37,10 +36,10 @@ class CreateRetriever:
             raise ValueError("Vector DB is not provided")
         
         retriever = self.vector_db.as_retriever(search_type="mmr", search_kwargs={"k": RETRIEVER_K})
-        return retriever
-        # compressor = CohereRerank()
-        # logging.info("Cohere Reranking")
-        # compression_retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=retriever)
-        # return compression_retriever
+        # return retriever
+        compressor = CohereRerank()
+        logging.info("Cohere Reranking")
+        compression_retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=retriever)
+        return compression_retriever
 
 
