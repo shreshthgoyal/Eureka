@@ -8,8 +8,10 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 from transformers import pipeline
+import nltk
 
 nlp = spacy.load('en_core_web_sm')
+nltk.download('punkt')
 
 # Load the classification pipeline
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
@@ -70,7 +72,7 @@ def summarize_and_interpret(data_folder):
         classification = classify_text(text)
 
         results.append({
-            'filename': filename,
+            'filename': data_folder+filename,
             'summary': summary,
             'keywords': keywords,
             'classification': classification
