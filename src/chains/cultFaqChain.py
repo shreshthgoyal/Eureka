@@ -11,55 +11,50 @@ from langchain.prompts import (
 from langchain_core.output_parsers import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from src.chains.config import CHAT_MODEL_NAME, CULT_TEMPLATE_STR
-from langchain_fireworks import Fireworks 
-# from langchain_cohere import ChatCohere
+from langchain_fireworks import Fireworks
 
 setup_logging()
 dotenv.load_dotenv()
 
-class CultFAQChain:
+class DocumentFAQChain:
     def __init__(self, retriever):
         try:
-            # self.chat_model = ChatGroq(groq_api_key=os.getenv('GROQ_API_KEY'), model_name=CHAT_MODEL_NAME)
-            self.chat_model = Fireworks(
-            model=CHAT_MODEL_NAME,
-            )
-            # self.chat_model = Ollama(model="mistral")
-            self.cult_system_prompt = SystemMessagePromptTemplate(
+            self.chat_model = Fireworks(model=CHAT_MODEL_NAME)
+            self.system_prompt = SystemMessagePromptTemplate(
                 prompt=PromptTemplate(
                     input_variables=["context"],
                     template=CULT_TEMPLATE_STR,
                 )
             )
 
-            self.cult_human_prompt = HumanMessagePromptTemplate(
+            self.human_prompt = HumanMessagePromptTemplate(
                 prompt=PromptTemplate(
                     input_variables=["question"],
                     template="{question}",
                 )
             )
 
-            self.messages = [self.cult_system_prompt, self.cult_human_prompt]
+            self.messages = [self.system_prompt, self.human_prompt]
 
-            self.cult_prompt_template = ChatPromptTemplate(
+            self.prompt_template = ChatPromptTemplate(
                 input_variables=["context", "question"],
                 messages=self.messages,
             )
 
-            self.cult_faq_chain = self.create_faq_chain(retriever)
+            self.faq_chain = self.create_faq_chain(retriever)
+            self.history = []
             
-            logging.info("CultFAQChain initialized successfully")
+            logging.info("DocumentFAQChain initialized successfully")
         except Exception as e:
-            logging.error(f"Error initializing CultFAQChain: {e}")
+            logging.error(f"Error initializing DocumentFAQChain: {e}")
             raise
-
 
     def create_faq_chain(self, retriever):
         try:
             faq_chain = {
                 "context": retriever,
                 "question": RunnablePassthrough()
-            } | self.cult_prompt_template | self.chat_model | StrOutputParser()
+            } | self.prompt_template | self.chat_model | StrOutputParser()
             return faq_chain
         except Exception as e:
             logging.error(f"Error creating FAQ chain: {e}")
@@ -67,11 +62,14 @@ class CultFAQChain:
 
     def get_chain(self):
         try:
-            return self.cult_faq_chain
+            return self.faq_chain
         except Exception as e:
             logging.error(f"Error retrieving FAQ chain: {e}")
             raise
 
-    def invoke_chain(self, query:str): 
-        response = self.cult_faq_chain.invoke({"input": query})
+    def invoke_chain(self, query: str):
+        self.history.append(query)
+        context = " ".join(self.history)
+        response = self.faq_chain.invoke({"context": context, "question": query})
+        self.history.append(response)
         return response
