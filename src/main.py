@@ -78,7 +78,6 @@ async def messageDoc(query: MessageInput) -> MessageOutput:
         
         doc_chain = chat_sessions[query.session_id]
         response = doc_chain.invoke_chain(query.query)
-        print(response)
         return MessageOutput(response=response)
     
     except Exception as e:

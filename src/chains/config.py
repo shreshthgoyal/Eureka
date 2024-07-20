@@ -21,4 +21,6 @@ Question: {question}
 
 Dont add synthetic data.
 Dont provide any kind of link or redirecting deeplink to the user.
+
+Answer only in string format, with direct answer, dont keep it as a conoversation like (AI: "response", Assistant: "response")
 """
