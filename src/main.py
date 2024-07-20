@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.retriever.initialise import vector_db
 from src.models.cult_rag_query import QueryInput, QueryOutput, SelectInput, SelectOutput, MessageInput, MessageOutput
 from src.retriever.create_retriever import CreateRetriever
-# from src.utils.documentInfo import documentInfo
+from src.utils.documentInfo import documentInfo
 from src.chains.cultFaqChain import DocumentFAQChain
 import uvicorn
 import uuid
@@ -40,20 +40,20 @@ async def get_status():
     logging.info("Health check endpoint called")
     return {"status": "running"}
 
-# @app.post("/search", response_model=QueryOutput)
-# async def searchDoc(query: QueryInput) -> QueryOutput:
-#     try:
-#         searchResponse = await invokeRetriever(query.input)
-#         response_message = searchResponse[0].page_content
+@app.post("/search", response_model=QueryOutput)
+async def searchDoc(query: QueryInput) -> QueryOutput:
+    try:
+        searchResponse = await invokeRetriever(query.input)
+        response_message = searchResponse[0].page_content
         
-#         doc_list = []
-#         for response in searchResponse:
-#             doc_list.append(response.metadata)
+        doc_list = []
+        for response in searchResponse:
+            doc_list.append(response.metadata)
                     
-#         return QueryOutput(message=response_message, documents=doc_list, info = documentInfo)
+        return QueryOutput(message=response_message, documents=doc_list, info = documentInfo)
     
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 #This endpoint is called when a user selects a document from the search results, and wishes to talk to that document. Creates a new session by creating a new instance of the chain, and stores it

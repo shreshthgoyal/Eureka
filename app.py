@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from PyPDF2 import PdfReader
 from src.retriever.initialise import vector_db
+from src.utils.documentInfo import documentInfo
 from src.retriever.create_retriever import CreateRetriever
 
 st.set_page_config(layout="wide")
@@ -29,13 +30,18 @@ def read_pdf_document(doc_name):
     return text
 
 def display_document_info(doc_info):
+    relevant_document_info = next((info for info in documentInfo if info['filename'] == doc_info['source']), None)
+    keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
+    classification = relevant_document_info['classification'] if relevant_document_info else ""
     card_html = f"""
     <a href="?page=details&doc={doc_info['source']}" style="text-decoration: none; color: inherit;">
         <div style="width: 400px; border: 1px solid #ddd; padding: 15px; margin-bottom: 1px; border-radius: 10px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.2s;"
             onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
             <h4 style="font-size: 1.5em; margin: 0;">{doc_info['source']}</h4>
-            <p style="font-size: 1em; color: #333;">Relevance: {doc_info['relevance_score']:.2f}</p>
+            <h5 style="font-size: 1.2em; color: #666; margin: 0;">Keywords: {keywords}</h5>
+            <h5 style="font-size: 1.2em; color: #666; margin: 0;">Tag: {classification}</h5>
+            <p style="font-size: 1em; color: #444;">Relevance: {doc_info['relevance_score']:.2f}</p>
         </div>
     </a>
     """
@@ -80,7 +86,7 @@ def display_chatbot(doc_name):
         if user_message.strip():
             add_message_to_chat_history(user_message)
             display_chat_messages()
-            st.experimental_rerun()
+            st.rerun()
 
 def display_chat_messages():
     chat_display = "<div id='chat-area' style='height: 350px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f4f4f4;'>"
