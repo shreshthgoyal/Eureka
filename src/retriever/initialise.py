@@ -1,15 +1,10 @@
-from langchain_community.vectorstores import FAISS
 import os
-from src.retriever.config import ANSWERS_CSV_PATH, EMBEDDINGS_MODEL
+import pickle
+from langchain_community.vectorstores import FAISS
 from langchain_core.documents.base import Document
 from langchain_community.document_loaders import CSVLoader, PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain_nomic.embeddings import NomicEmbeddings
-# from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_cohere import CohereEmbeddings
-# from langchain_fireworks import FireworksEmbeddings
-
-
 import dotenv
 
 dotenv.load_dotenv()
@@ -22,14 +17,19 @@ def load_and_process_csv(file_path):
     loader = CSVLoader(file_path=file_path)
     return loader.load()
 
-def initialize_vector_db(data_folder):
+def parse_page_content(page_content):
+    content_dict = {}
+    lines = page_content.split('\n')
+    for line in lines:
+        if ':' in line:
+            key, value = line.split(':', 1)
+            content_dict[key.strip()] = value.strip()
+    return content_dict
+
+def ingest_documents(data_folder, faiss_index_path, embeddings_path, single_doc_folder):
     documents = []
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    
-    # embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5", dimensionality=512)
     embeddings = CohereEmbeddings(model="embed-english-light-v3.0")
-    # embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
-    # embeddings = FireworksEmbeddings(model="nomic-ai/nomic-embed-text-v1.5")
     
     for filename in os.listdir(data_folder):
         file_path = os.path.join(data_folder, filename)
@@ -40,28 +40,43 @@ def initialize_vector_db(data_folder):
         else:
             continue
 
+        single_doc = []
         for doc in pages:
             content_dict = parse_page_content(doc.page_content)
             doc.page_content = content_dict.get('Answer', '')
             chunks = text_splitter.split_text(doc.page_content)
             for chunk in chunks:
-                doc = Document(page_content=chunk, metadata=doc.metadata)
+                metadata_with_source = doc.metadata.copy()
+                metadata_with_source['source'] = filename
+                doc = Document(page_content=chunk, metadata=metadata_with_source)
                 documents.append(doc)
+                single_doc.append(doc)
 
-    vector_db = FAISS.from_documents(
-        documents,
-        embeddings,
-    )
+        # Save single document embeddings and FAISS index
+        if single_doc:
+            single_vector_db = FAISS.from_documents(single_doc, embeddings)
+            single_doc_base = os.path.splitext(filename)[0]
+            single_doc_index_path = os.path.join(single_doc_folder, f"{single_doc_base}_index")
+            single_doc_embeddings_path = os.path.join(single_doc_folder, f"{single_doc_base}_embeddings.pkl")
+            
+            with open(single_doc_embeddings_path, 'wb') as f:
+                pickle.dump(single_doc, f)
+            single_vector_db.save_local(single_doc_index_path)
+
+    # Compute embeddings for the documents
+    vector_db = FAISS.from_documents(documents, embeddings)
+
+    # Save embeddings and metadata
+    with open(embeddings_path, 'wb') as f:
+        pickle.dump(documents, f)
+    
+    # Persist the vectors locally on disk
+    vector_db.save_local(faiss_index_path)
+    
     return vector_db
 
-def parse_page_content(page_content):
-    content_dict = {}
-    lines = page_content.split('\n')
-    for line in lines:
-        if ':' in line:
-            key, value = line.split(':', 1)
-            content_dict[key.strip()] = value.strip()
-    return content_dict
-
-
-vector_db = initialize_vector_db('data/')
+faiss_index_path = 'faiss_index_store'
+embeddings_path = 'embeddings_store.pkl'
+single_doc_folder = 'single_docs'
+os.makedirs(single_doc_folder, exist_ok=True)
+vector_db = ingest_documents('data/', faiss_index_path, embeddings_path, single_doc_folder)
