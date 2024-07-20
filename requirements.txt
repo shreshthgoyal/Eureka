@@ -9,12 +9,11 @@ faiss-cpu
 langchain-fireworks
 langchain-cohere
 pypdf
-transformers
 pandas 
 PyPDF2
-tensorflow
-tf-keras
+tensorflow_hub
 sumy
 spacy
 scikit-learn
 streamlit
+nltk

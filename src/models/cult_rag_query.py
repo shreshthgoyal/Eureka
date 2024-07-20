@@ -12,7 +12,7 @@ class DocumentInfo(BaseModel):
 
 class DocumentSummary(BaseModel):
     filename: str
-    summary: str
+    summary: Optional[str] = None
     keywords: List[str]
     classification: str
     
