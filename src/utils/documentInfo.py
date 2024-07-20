@@ -1,10 +1,6 @@
 import os
 import pandas as pd
 import PyPDF2
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lsa import LsaSummarizer
-import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import tensorflow_hub as hub
@@ -30,7 +26,6 @@ training_labels = ["Finance", "Education", "Entertainment", "Fitness", "HR", "De
 
 training_embeddings = embed(training_texts)
 
-# Train an SVM classifier
 svm_clf = make_pipeline(StandardScaler(), SVC(kernel='linear', probability=True))
 svm_clf.fit(training_embeddings, training_labels)
 
@@ -46,12 +41,6 @@ def extract_text_from_pdf(file_path):
 def extract_text_from_csv(file_path):
     df = pd.read_csv(file_path, usecols=[2])
     return " ".join(df.iloc[:, 0].astype(str))
-
-def summarize_text(text):
-    parser = PlaintextParser.from_string(text, Tokenizer("english"))
-    summarizer = LsaSummarizer()
-    summary = summarizer(parser.document, 2)  # Summarize to 2 sentences
-    return " ".join([str(sentence) for sentence in summary])
 
 def extract_keywords_tfidf(text, num_keywords=5):
     vectorizer = TfidfVectorizer(stop_words='english')
@@ -84,13 +73,11 @@ def summarize_and_interpret(data_folder):
         else:
             continue
 
-        summary = summarize_text(text)
         keywords = extract_keywords_tfidf(text)
         classification = classify_text(text)
 
         results.append({
             'filename': os.path.join(data_folder, filename),
-            'summary': summary,
             'keywords': keywords,
             'classification': classification
         })
@@ -103,7 +90,6 @@ documentInfo = summaries_and_interpretations = summarize_and_interpret(data_fold
 # Display results
 for info in documentInfo:
     print(f"Filename: {info['filename']}")
-    print(f"Summary: {info['summary']}")
     print(f"Keywords: {info['keywords']}")
     print(f"Classification: {info['classification']}")
     print("-" * 80)
