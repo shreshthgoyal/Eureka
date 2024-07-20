@@ -113,5 +113,4 @@ Use three sentences maximum and keep the answer concise.\
     def invoke_chain(self, query: str):
         response = self.rag_chain.invoke({"input": query, "chat_history": self.history})
         self.history.extend([HumanMessage(content=query)])
-        print(response)
         return response["context"][0].page_content
