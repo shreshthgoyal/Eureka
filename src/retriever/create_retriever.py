@@ -36,7 +36,6 @@ class CreateRetriever:
             raise ValueError("Vector DB is not provided")
         
         retriever = self.vector_db.as_retriever(search_type="mmr", search_kwargs={"k": RETRIEVER_K})
-        # return retriever
         compressor = CohereRerank()
         logging.info("Cohere Reranking")
         compression_retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=retriever)

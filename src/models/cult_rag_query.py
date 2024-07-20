@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
 
 class QueryInput(BaseModel):
     input: str
@@ -19,4 +19,18 @@ class DocumentSummary(BaseModel):
 class QueryOutput(BaseModel):
     message: str
     documents: List[DocumentInfo]
-    info: List[DocumentSummary]
+    info: Optional[List[DocumentSummary]] = None
+
+class SelectInput(BaseModel):
+    document_title: str
+
+class SelectOutput(BaseModel):
+    message: str
+    session_id: Any
+
+class MessageInput(BaseModel):
+    session_id: Any
+    query: str
+    
+class MessageOutput(BaseModel):
+    response: str
