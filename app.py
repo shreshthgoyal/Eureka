@@ -30,7 +30,7 @@ def read_pdf_document(doc_name):
     return text
 
 def display_document_info(doc_info):
-    relevant_document_info = next((info for info in documentInfo if info['filename'] == doc_info['source']), None)
+    relevant_document_info = next((info for info in documentInfo if info['filename'] == 'data/'+doc_info['source']), None)
     keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
     classification = relevant_document_info['classification'] if relevant_document_info else ""
     card_html = f"""
@@ -49,7 +49,7 @@ def display_document_info(doc_info):
 
 def display_document_details(doc_name):
     col1, col2 = st.columns([2, 1])
-    
+    doc_name = 'data/' + doc_name
     with col1:
         st.subheader("Document Content")
         if doc_name.endswith('.csv'):
@@ -70,7 +70,11 @@ def display_document_details(doc_name):
 
 def display_chatbot(doc_name):
     st.subheader("Document Information")
-    doc_info = f"**Document Name:** {doc_name}<br>**Document Summary:** Short summary here."
+    relevant_document_info = next((info for info in documentInfo if info['filename'] == doc_name), None)
+    keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
+    classification = relevant_document_info['classification'] if relevant_document_info else ""
+    
+    doc_info = f"**Document Name:** {doc_name}<br> **Keywords:** {keywords}<br>**Tag:** {classification}"
     st.markdown(doc_info, unsafe_allow_html=True)
     
     st.subheader("Chatbot")
