@@ -131,6 +131,11 @@ def scroll_to_latest():
     </script>
     """, unsafe_allow_html=True)
 
+def get_document_list(directory="data"):
+    """ Returns a list of document names from the specified directory. """
+    import os
+    return [file for file in os.listdir(directory) if file.endswith('.csv') or file.endswith('.pdf')]
+
 def main():
     st.markdown("""
         <style>
@@ -150,15 +155,29 @@ def main():
         }
         </style>
         """, unsafe_allow_html=True)
-    
+
     st.title("Document Search and Summary Interface")
     
     params = st.query_params
-    if params and 'page' in params and params["page"] == "details" and 'doc' in params:
+    if params and params["doc"] != None and 'page' in params and params["page"] == "details" and 'doc' in params:
         doc_name = params["doc"]
         display_document_details(doc_name)
     else:
-        query_input = st.text_input("Enter your search query here:", "")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            query_input = st.text_input("Enter your search query here:", key="search_input")
+        with col2:
+            show_docs = st.button("Show Documents")
+            
+        if show_docs:
+            st.session_state['show_docs'] = not st.session_state.get('show_docs', False)
+
+        if st.session_state.get('show_docs', False):
+            document_list = get_document_list()
+            selected_document = st.selectbox("Select a Document:", document_list, key="doc_select", index=None)
+            document_url = f"?page=details&doc={selected_document}"
+            st.link_button("View Document", document_url)
+
         if query_input:
             response = invoke_retriever(query_input)
             if isinstance(response, str):
@@ -179,6 +198,7 @@ def main():
                     with col:
                         display_document_info(doc_info)
                     index += 1
+
 
 if __name__ == "__main__":
     main()
