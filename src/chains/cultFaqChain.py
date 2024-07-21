@@ -17,13 +17,16 @@ from langchain_fireworks import Fireworks
 from langchain.chains import create_history_aware_retriever
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from src.retriever.load_vectors import load_single_document_vector_db
+from src.retriever.query_handler import query_single_document
+
 
 
 setup_logging()
 dotenv.load_dotenv()
 
 class DocumentFAQChain:
-    def __init__(self, retriever):
+    def __init__(self, retriever, doc_name):
         try:
             self.chat_model = Fireworks(model=CHAT_MODEL_NAME)
             self.system_prompt = SystemMessagePromptTemplate(
@@ -49,6 +52,13 @@ class DocumentFAQChain:
 
             self.faq_chain = self.create_faq_chain(retriever)
             self.history = []
+            single_doc_folder = 'single_docs'
+            
+            doc_base = os.path.splitext(doc_name)[0]
+            
+            single_vector_db, _ = load_single_document_vector_db(doc_base, single_doc_folder)
+            
+            self.single_retriever =  single_vector_db.as_retriever(search_type="mmr", search_kwargs={"k": 1})
             
             contextualize_q_system_prompt = """Given a chat history and the latest user question \
 which might reference context in the chat history, formulate a standalone question \
@@ -64,7 +74,7 @@ just reformulate it if needed and otherwise return it as is."""
             )
             
             self.history_aware_retriever = create_history_aware_retriever(
-                self.chat_model, retriever, contextualize_q_prompt
+                self.chat_model, self.single_retriever, contextualize_q_prompt
             )
     
             qa_system_prompt = """You are an assistant for question-answering tasks. \

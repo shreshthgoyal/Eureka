@@ -62,7 +62,7 @@ async def selectDoc(query: SelectInput) -> SelectOutput:
     try:
         selected_doc_retriever = retriever
         session_id = str(uuid.uuid4())
-        chat_sessions[session_id] = DocumentFAQChain(selected_doc_retriever)
+        chat_sessions[session_id] = DocumentFAQChain(selected_doc_retriever, query.document_title)
 
         return SelectOutput(message="Document selected successfully.", session_id=session_id)
     

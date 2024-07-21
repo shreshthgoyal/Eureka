@@ -1,10 +1,13 @@
 import streamlit as st
 import os
+import uuid
 import pandas as pd
 from PyPDF2 import PdfReader
 from src.retriever.initialise import vector_db
 from src.utils.documentInfo import documentInfo
 from src.retriever.create_retriever import CreateRetriever
+from src.chains.cultFaqChain import DocumentFAQChain
+
 
 st.set_page_config(layout="wide")
 
@@ -16,6 +19,23 @@ def invoke_retriever(query):
         return retriever.invoke(query)
     else:
         return "Please enter a valid query to retrieve documents."
+    
+def invoke_single_document_retriever(query):    
+    if 'id' not in st.query_params:
+        st.error("The 'id' key is missing.")
+        return None
+
+    session_id = st.query_params['id']
+    doc_name = st.query_params['doc']
+    
+    res_chain = DocumentFAQChain(retriever, doc_name)
+
+    response = res_chain.invoke_chain(query)
+    return response
+        
+def createSession():
+    session_id = str(uuid.uuid4())
+    return session_id
 
 def read_csv_document(doc_name):
     doc_path = os.path.join(doc_name)
@@ -34,7 +54,7 @@ def display_document_info(doc_info):
     keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
     classification = relevant_document_info['classification'] if relevant_document_info else ""
     card_html = f"""
-    <a href="?page=details&doc={doc_info['source']}" style="text-decoration: none; color: inherit;">
+    <a href="?page=details&doc={doc_info['source']}&id={createSession()}" style="text-decoration: none; color: inherit;">
         <div style="width: 400px; border: 1px solid #ddd; padding: 15px; margin-bottom: 1px; border-radius: 10px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.2s;"
             onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
@@ -103,17 +123,17 @@ def display_chat_messages():
 def add_message_to_chat_history(user_message):
     user_message_formatted = f"""
     <div style='display: flex; justify-content: flex-end; width: 100%; margin-bottom: 5px;'>
-        <div style='color: blue; background-color: #e6e6ff; border-radius: 10px; padding: 5px; max-width: 200px;'>
+        <div style='color: blue; background-color: #e6e6ff; border-radius: 10px; padding: 5px; min-width: 50px; max-width: 80%;'>
             {user_message}
         </div>
     </div>"""
     
     st.session_state.chat_history.append(user_message_formatted)
 
-    ai_response_text = "I have noted your message."
+    ai_response_text = invoke_single_document_retriever(user_message)
     ai_response = f"""
     <div style='display: flex; justify-content: flex-start; width: 100%; margin-bottom: 5px;'>
-        <div style='color: green; background-color: #ccffcc; border-radius: 10px; padding: 5px; max-width: 200px;'>
+        <div style='color: green; background-color: #ccffcc; border-radius: 10px; padding: 5px; min-width: 50px; max-width: 80%;'>
             {ai_response_text}
         </div>
     </div>"""
