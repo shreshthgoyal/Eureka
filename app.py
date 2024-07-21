@@ -9,7 +9,7 @@ from src.retriever.create_retriever import CreateRetriever
 from src.chains.cultFaqChain import DocumentFAQChain
 
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", initial_sidebar_state='collapsed')
 
 retriever_instance = CreateRetriever(vector_db)
 retriever = retriever_instance.get_retriever()
@@ -55,7 +55,7 @@ def display_document_info(doc_info):
     classification = relevant_document_info['classification'] if relevant_document_info else ""
     card_html = f"""
     <a href="?page=details&doc={doc_info['source']}&id={createSession()}" style="text-decoration: none; color: inherit;">
-        <div style="width: 400px; border: 1px solid #ddd; padding: 15px; margin-bottom: 1px; border-radius: 10px; 
+        <div style="width: 350px; border: 1px solid #ddd; padding: 15px; margin-bottom: 1px; border-radius: 10px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.2s;"
             onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
             <h4 style="font-size: 1.5em; margin: 0;">{doc_info['source']}</h4>
@@ -157,6 +157,26 @@ def get_document_list(directory="data"):
     return [file for file in os.listdir(directory) if file.endswith('.csv') or file.endswith('.pdf')]
 
 def main():
+    
+    with st.sidebar:
+        document_list = get_document_list()
+    
+        st.write("## Document List") 
+        for document in document_list:
+            document_url = f"?page=details&doc={document}&id={createSession()}"
+        
+            with st.expander(document):
+                st.markdown(f"Explore more about this document. Click the button below to view details.")
+                relevant_document_info = next((info for info in documentInfo if info['filename'] == 'data/' + document), None)
+                keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
+                classification = relevant_document_info['classification'] if relevant_document_info else ""
+    
+                doc_info = f"**Keywords:** {keywords}<br>**Tag:** {classification}"
+                st.markdown(doc_info, unsafe_allow_html=True)
+                
+                st.link_button("View Document", document_url)
+
+        
     st.markdown("""
         <style>
         .reportview-container .main .block-container {
@@ -183,20 +203,7 @@ def main():
         doc_name = params["doc"]
         display_document_details(doc_name)
     else:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            query_input = st.text_input("Enter your search query here:", key="search_input")
-        with col2:
-            show_docs = st.button("Show Documents")
-            
-        if show_docs:
-            st.session_state['show_docs'] = not st.session_state.get('show_docs', False)
-
-        if st.session_state.get('show_docs', False):
-            document_list = get_document_list()
-            selected_document = st.selectbox("Select a Document:", document_list, key="doc_select", index=None)
-            document_url = f"?page=details&doc={selected_document}"
-            st.link_button("View Document", document_url)
+        query_input = st.text_input("Enter your search query here:", key="search_input")
 
         if query_input:
             response = invoke_retriever(query_input)
@@ -210,7 +217,7 @@ def main():
                 st.write(response_message)
 
                 st.subheader("Relevant Documents")
-                cols_per_row = 4
+                cols_per_row = 3
                 rows = [st.columns(cols_per_row) for _ in range((len(documents) + cols_per_row - 1) // cols_per_row)]
                 index = 0
                 for doc_info in documents:

@@ -14,7 +14,7 @@ def load_and_process_pdf(file_path):
     return loader.load_and_split()
 
 def load_and_process_csv(file_path):
-    loader = CSVLoader(file_path=file_path)
+    loader = CSVLoader(file_path)
     return loader.load()
 
 def parse_page_content(page_content):
@@ -39,20 +39,21 @@ def ingest_documents(data_folder, faiss_index_path, embeddings_path, single_doc_
             pages = load_and_process_csv(file_path)
         else:
             continue
-
+                
+        
         single_doc = []
         for doc in pages:
-            content_dict = parse_page_content(doc.page_content)
-            doc.page_content = content_dict.get('Answer', '')
+            if filename.endswith('.csv'):
+                content_dict = parse_page_content(doc.page_content)
+                doc.page_content = content_dict.get('Answer', '')
             chunks = text_splitter.split_text(doc.page_content)
             for chunk in chunks:
-                metadata_with_source = doc.metadata.copy()
+                metadata_with_source = doc.metadata
                 metadata_with_source['source'] = filename
                 doc = Document(page_content=chunk, metadata=metadata_with_source)
                 documents.append(doc)
                 single_doc.append(doc)
 
-        # Save single document embeddings and FAISS index
         if single_doc:
             single_vector_db = FAISS.from_documents(single_doc, embeddings)
             single_doc_base = os.path.splitext(filename)[0]
@@ -63,14 +64,11 @@ def ingest_documents(data_folder, faiss_index_path, embeddings_path, single_doc_
                 pickle.dump(single_doc, f)
             single_vector_db.save_local(single_doc_index_path)
 
-    # Compute embeddings for the documents
     vector_db = FAISS.from_documents(documents, embeddings)
 
-    # Save embeddings and metadata
     with open(embeddings_path, 'wb') as f:
         pickle.dump(documents, f)
     
-    # Persist the vectors locally on disk
     vector_db.save_local(faiss_index_path)
     
     return vector_db

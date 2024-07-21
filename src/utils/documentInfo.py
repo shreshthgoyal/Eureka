@@ -14,15 +14,14 @@ labels = ["Finance", "Education", "Entertainment", "Fitness", "HR", "Design", "S
 
 training_texts = [
     "Stock market trends and financial news",
-    "Latest educational research and teaching methods",
-    "Movie reviews and entertainment news",
-    "Workout routines and fitness tips",
+    "Latest technical research and methods",
+    "What is Woodpecker?",
     "Human resources policies and employee management",
     "Graphic design trends and tutorials",
     "Cybersecurity threats and prevention",
     "Legal case studies and law news"
 ]
-training_labels = ["Finance", "Education", "Entertainment", "Fitness", "HR", "Design", "Security", "Legal"]
+training_labels = ["Finance", "Technical", "FAQ", "HR", "Design", "Security", "Legal"]
 
 training_embeddings = embed(training_texts)
 
@@ -39,7 +38,7 @@ def extract_text_from_pdf(file_path):
     return text.strip()
 
 def extract_text_from_csv(file_path):
-    df = pd.read_csv(file_path, usecols=[2])
+    df = pd.read_csv(file_path, usecols=[1])
     return " ".join(df.iloc[:, 0].astype(str))
 
 def extract_keywords_tfidf(text, num_keywords=5):
@@ -50,15 +49,12 @@ def extract_keywords_tfidf(text, num_keywords=5):
     dense_list = dense.tolist()
     tfidf_scores = dense_list[0]
     
-    # Use numpy to handle sorting and indexing
     keyword_indices = np.argsort(tfidf_scores)[-num_keywords:][::-1]
     keywords = [feature_names[idx] for idx in keyword_indices]
     return keywords
 
 def classify_text(text):
-    # Convert text to embeddings
     text_embedding = embed([text])
-    # Use the trained SVM classifier to classify the text
     prediction = svm_clf.predict(text_embedding)
     return prediction[0]
 
@@ -86,10 +82,3 @@ def summarize_and_interpret(data_folder):
 
 data_folder = 'data/'
 documentInfo = summaries_and_interpretations = summarize_and_interpret(data_folder)
-
-# Display results
-for info in documentInfo:
-    print(f"Filename: {info['filename']}")
-    print(f"Keywords: {info['keywords']}")
-    print(f"Classification: {info['classification']}")
-    print("-" * 80)
