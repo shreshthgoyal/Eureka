@@ -7,8 +7,26 @@ from src.retriever.initialise import vector_db
 from src.utils.documentInfo import documentInfo
 from src.retriever.create_retriever import CreateRetriever
 from src.chains.cultFaqChain import DocumentFAQChain
+from langchain.schema.runnable import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain.prompts import (
+    PromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+    ChatPromptTemplate,
+    MessagesPlaceholder
+)
 
+from langchain_fireworks import Fireworks
 
+chat = Fireworks(model="accounts/fireworks/models/mixtral-8x7b-instruct")
+system_message = "You are here to interpret the data, and reform the final answer, based on the user query provided in crisp answer only, nothing else."
+system_prompt = SystemMessagePromptTemplate(
+                prompt=PromptTemplate(
+                    input_variables=["context"],
+                    template=system_message,
+                )
+            )
 st.set_page_config(layout="wide", initial_sidebar_state='collapsed')
 
 retriever_instance = CreateRetriever(vector_db)
@@ -16,7 +34,28 @@ retriever = retriever_instance.get_retriever()
 
 def invoke_retriever(query):
     if query:
-        return retriever.invoke(query)
+        res = retriever.invoke(query)
+        if(res):
+            human_message = HumanMessagePromptTemplate(
+                prompt=PromptTemplate(
+                    input_variables=["query", "ans"],
+                    template="Based on this {query}, reform this answer: {ans} precisely.",
+                )
+            )
+            
+            messages = [system_prompt, human_message]
+            
+            prompt_template = ChatPromptTemplate(
+                input_variables=["query", "ans"],
+                messages=messages,
+            )
+            
+            faq_chain = {
+                "query": RunnablePassthrough(),
+                "ans": RunnablePassthrough()
+            } | prompt_template | chat | StrOutputParser()
+            
+            return {"chain": faq_chain.invoke({"query": query, "ans": res[0].page_content}), "retr": res}  
     else:
         return "Please enter a valid query to retrieve documents."
     
@@ -30,8 +69,9 @@ def invoke_single_document_retriever(query):
     
     res_chain = DocumentFAQChain(retriever, doc_name)
 
-    response = res_chain.invoke_chain(query)
-    return response
+    ans = res_chain.invoke_chain(query)
+    return ans
+    
         
 def createSession():
     session_id = str(uuid.uuid4())
@@ -50,15 +90,20 @@ def read_pdf_document(doc_name):
     return text
 
 def display_document_info(doc_info):
-    relevant_document_info = next((info for info in documentInfo if info['filename'] == 'data/'+doc_info['source']), None)
+    relevant_document_info = next((info for info in documentInfo if info['filename'] == 'data/' + doc_info['source']), None)
+    
     keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
-    classification = relevant_document_info['classification'] if relevant_document_info else ""
+    classification = relevant_document_info.get('classification', "") if relevant_document_info else ""
+    
+    source_type = "Row" if "row" in doc_info else "Page" if "page" in doc_info else "Not specified"
+    
     card_html = f"""
     <a href="?page=details&doc={doc_info['source']}&id={createSession()}" style="text-decoration: none; color: inherit;">
-        <div style="width: 350px; border: 1px solid #ddd; padding: 15px; margin-bottom: 1px; border-radius: 10px; 
+        <div style="width: 350px; border: 1px solid #ddd; padding: 15px; margin-bottom: 1px; border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.2s;"
             onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
             <h4 style="font-size: 1.5em; margin: 0;">{doc_info['source']}</h4>
+            <h5 style="font-size: 1.2em; color: #666; margin: 0;">Source: {source_type + " " + str(doc_info[source_type.lower()])}</h5>
             <h5 style="font-size: 1.2em; color: #666; margin: 0;">Keywords: {keywords}</h5>
             <h5 style="font-size: 1.2em; color: #666; margin: 0;">Tag: {classification}</h5>
             <p style="font-size: 1em; color: #444;">Relevance: {doc_info['relevance_score']:.2f}</p>
@@ -68,7 +113,7 @@ def display_document_info(doc_info):
     st.markdown(card_html, unsafe_allow_html=True)
 
 def display_document_details(doc_name):
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([2, 3])
     doc_name = 'data/' + doc_name
     with col1:
         st.subheader("Document Content")
@@ -78,25 +123,25 @@ def display_document_details(doc_name):
         elif doc_name.endswith('.pdf'):
             doc_content = read_pdf_document(doc_name)
             st.markdown(
-                f"<div style='height: 600px; width: 100%; overflow-y: auto; border: 1px solid #ddd; padding: 10px;'>{doc_content}</div>",
+                f"<div style='height: 450px; width: 100%; overflow-y: auto; border: 1px solid #ddd; padding: 10px;'>{doc_content}</div>",
                 unsafe_allow_html=True
             )
         else:
             st.error("Unsupported file format")
+            
+        st.subheader("Document Information")
+        relevant_document_info = next((info for info in documentInfo if info['filename'] == doc_name), None)
+        keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
+        classification = relevant_document_info['classification'] if relevant_document_info else ""
+    
+        doc_info = f"**Document Name:** {doc_name}<br> **Keywords:** {keywords}<br>**Tag:** {classification}"
+        st.markdown(doc_info, unsafe_allow_html=True)
     
     with col2:
         display_chatbot(doc_name)
 
 
-def display_chatbot(doc_name):
-    st.subheader("Document Information")
-    relevant_document_info = next((info for info in documentInfo if info['filename'] == doc_name), None)
-    keywords = ", ".join(relevant_document_info['keywords']) if relevant_document_info else ""
-    classification = relevant_document_info['classification'] if relevant_document_info else ""
-    
-    doc_info = f"**Document Name:** {doc_name}<br> **Keywords:** {keywords}<br>**Tag:** {classification}"
-    st.markdown(doc_info, unsafe_allow_html=True)
-    
+def display_chatbot(doc_name):    
     st.subheader("Chatbot")
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
@@ -113,7 +158,7 @@ def display_chatbot(doc_name):
             st.rerun()
 
 def display_chat_messages():
-    chat_display = "<div id='chat-area' style='height: 350px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f4f4f4;'>"
+    chat_display = "<div id='chat-area' style='height: 600px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f4f4f4;'>"
     for message in st.session_state.chat_history:
         chat_display += f"<div style='margin: 5px; padding: 5px;'>{message}</div>"
     chat_display += "</div>"
@@ -129,7 +174,7 @@ def add_message_to_chat_history(user_message):
     </div>"""
     
     st.session_state.chat_history.append(user_message_formatted)
-
+    
     ai_response_text = invoke_single_document_retriever(user_message)
     ai_response = f"""
     <div style='display: flex; justify-content: flex-start; width: 100%; margin-bottom: 5px;'>
@@ -147,7 +192,7 @@ def scroll_to_latest():
         if(chatArea) {
             chatArea.scrollTop = chatArea.scrollHeight;
         }
-    }, 500); // Delay to ensure the page has loaded
+    }, 600); // Delay to ensure the page has loaded
     </script>
     """, unsafe_allow_html=True)
 
@@ -196,7 +241,7 @@ def main():
         </style>
         """, unsafe_allow_html=True)
 
-    st.title("Document Search and Summary Interface")
+    st.title("AI Powered Data Query Interface")
     
     params = st.query_params
     if params and params["doc"] != None and 'page' in params and params["page"] == "details" and 'doc' in params:
@@ -206,11 +251,16 @@ def main():
         query_input = st.text_input("Enter your search query here:", key="search_input")
 
         if query_input:
-            response = invoke_retriever(query_input)
+            res = invoke_retriever(query_input)
+            msg = res["chain"]
+            response = res["retr"]
             if isinstance(response, str):
                 st.error(response)
             else:
+                print(msg)
                 response_message = response[0].page_content
+                print("-----------------")
+                print(response)
                 documents = [res.metadata for res in response]
 
                 st.subheader("Query Response")

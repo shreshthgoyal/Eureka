@@ -9,7 +9,7 @@ from langchain.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder
 )
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from src.chains.config import CHAT_MODEL_NAME, CULT_TEMPLATE_STR
@@ -123,4 +123,10 @@ Use three sentences maximum and keep the answer concise.\
     def invoke_chain(self, query: str):
         response = self.rag_chain.invoke({"input": query, "chat_history": self.history})
         self.history.extend([HumanMessage(content=query)])
-        return response["context"][0].page_content
+        
+        from langchain_fireworks import ChatFireworks
+
+        chat = ChatFireworks(model="accounts/fireworks/models/mixtral-8x7b-instruct", temperature=1,)
+        system_message = SystemMessage(content="You are here to interpret the data, and reform the final answer, based on the user query provided in crisp only the final answer, nothing else, keep it strict to the point and precise. Without any opening statement.")
+        human_message = HumanMessage(content="Query: {query}, Answer: "+response["context"][0].page_content)
+        return chat.invoke([system_message, human_message]).content
