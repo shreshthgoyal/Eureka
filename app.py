@@ -10,8 +10,11 @@ from src.chains.cultFaqChain import DocumentFAQChain
 from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
-
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="Eureka",
+    page_icon="🔍",
+    layout="wide"
+)
 
 retriever_instance = CreateRetriever(vector_db)
 retriever = retriever_instance.get_retriever()
@@ -63,25 +66,28 @@ def display_document_info(doc_info, response_message):
     source_type = "Row" if "row" in doc_info else "Page" if "page" in doc_info else "Not specified"
     
     card_html = f"""
-    <a href="?page=details&doc={doc_info['source']}&id={createSession()}" style="text-decoration: none; color: inherit;">
-        <div style="width: 68vw; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.2s;"
-            onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-            <div style="max-height: 100px; overflow-y: auto; margin-bottom: 10px;">
-                <h4 style="font-size: 1.5em; margin: 0;">Relevant Answer: {response_message}</h4>
+    <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 20px;">
+        <a href="?page=details&doc={doc_info['source']}&id={createSession()}" style="text-decoration: none; color: inherit;">
+            <div style="width: 74vw; border: 1px solid #3A4F63; padding: 20px; margin-bottom: 20px; border-radius: 10px;
+                background-color: #2B3A4F; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.2s, box-shadow 0.2s;"
+                onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 12px rgba(0, 0, 0, 0.2)'" 
+                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 8px rgba(0, 0, 0, 0.1)'">
+                <div style="max-height: 100px; overflow-y: auto; margin-bottom: 10px;">
+                    <h4 style="font-size: 1.5em; margin: 0; color: #E0E0E0;">Relevant Answer: {response_message}</h4>
+                </div>
+                <h4 style="font-size: 1.5em; margin: 0; color: #E0E0E0;">Source: {doc_info['source']}</h4>
+                <h5 style="font-size: 1.2em; color: #A0A3B1; margin: 0;">{source_type + " " + str(doc_info[source_type.lower()])}</h5>
+                <h5 style="font-size: 1.2em; color: #A0A3B1; margin: 0;">Keywords: {keywords}</h5>
+                <h5 style="font-size: 1.2em; color: #A0A3B1; margin: 0;">Tag: {classification}</h5>
+                <p style="font-size: 1em; color: #E0E0E0;">Relevance: {doc_info['relevance_score']:.2f}</p>
             </div>
-            <h4 style="font-size: 1.5em; margin: 0;">Source: {doc_info['source']}</h4>
-            <h5 style="font-size: 1.2em; color: #666; margin: 0;">{source_type + " " + str(doc_info[source_type.lower()])}</h5>
-            <h5 style="font-size: 1.2em; color: #666; margin: 0;">Keywords: {keywords}</h5>
-            <h5 style="font-size: 1.2em; color: #666; margin: 0;">Tag: {classification}</h5>
-            <p style="font-size: 1em; color: #444;">Relevance: {doc_info['relevance_score']:.2f}</p>
-        </div>
-    </a>
+        </a>
+    </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
 
 def display_document_details(doc_name):
-    col1, col2 = st.columns([2, 3])
+    col1, col2 = st.columns([3, 2])
     doc_name = 'data/' + doc_name
     with col1:
         if doc_name.endswith('.csv'):
@@ -111,9 +117,9 @@ def display_document_details(doc_name):
 def display_chatbot(doc_name):    
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = [f"""
-    <div style='display: flex; justify-content: flex-start; width: 100%; margin-bottom: 5px;'>
-        <div style='color: green; background-color: #ccffcc; border-radius: 10px; padding: 5px; min-width: 50px; max-width: 80%;'>
-            Hey! You can talk to to me about {doc_name}!
+   <div style='display: flex; justify-content: flex-start; width: 100%; margin-bottom: 5px;'>
+        <div style='color: {st.config.get_option("theme.textColor")}; background-color: #2B3E50; border-radius: 10px; padding: 10px; min-width: 50px; max-width: 80%;'>
+            Hi there! I'm here to help you with any questions you have about the document you're viewing. Simply type your question below, and I'll do my best to provide you with accurate and helpful information.
         </div>
     </div>"""]
 
@@ -121,14 +127,16 @@ def display_chatbot(doc_name):
 
     key = "user_input_" + str(len(st.session_state.chat_history))
     user_message = st.chat_input("Your message:", key=key)
-    
-    if user_message.strip():
+
+    if user_message is not None and user_message.strip():
             add_message_to_chat_history(user_message)
             display_chat_messages()
             st.rerun()
 
 def display_chat_messages():
-    chat_display = "<div id='chat-area' style='height: 600px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #DADFF7;'>"
+    chat_display = f"""
+    <div id='chat-area' style='height: 600px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;'>
+    """
     for message in st.session_state.chat_history:
         chat_display += f"<div style='margin: 5px; padding: 5px;'>{message}</div>"
     chat_display += "</div>"
@@ -137,22 +145,23 @@ def display_chat_messages():
 
 def add_message_to_chat_history(user_message):
     user_message_formatted = f"""
-    <div style='display: flex; justify-content: flex-end; width: 100%; margin-bottom: 5px;'>
-        <div style='color: blue; background-color: #e6e6ff; border-radius: 10px; padding: 5px; min-width: 50px; max-width: 80%;'>
+     <div style='display: flex; justify-content: flex-end; width: 100%; margin-bottom: 5px;'>
+        <div style='color: {st.config.get_option("theme.textColor")}; background-color: #476785; border-radius: 10px; padding: 10px; min-width: 50px; max-width: 80%;'>
             {user_message}
         </div>
     </div>"""
-    
+
     st.session_state.chat_history.append(user_message_formatted)
     
     ai_response_text = invoke_single_document_retriever(user_message)
     ai_response = f"""
     <div style='display: flex; justify-content: flex-start; width: 100%; margin-bottom: 5px;'>
-        <div style='color: green; background-color: #ccffcc; border-radius: 10px; padding: 5px; min-width: 50px; max-width: 80%;'>
+        <div style='color: {st.config.get_option("theme.textColor")}; background-color: #2B3E50; border-radius: 10px; padding: 10px; min-width: 50px; max-width: 80%;'>
             {ai_response_text}
         </div>
     </div>"""
     st.session_state.chat_history.append(ai_response)
+
 
 def scroll_to_latest():
     st.markdown("""
@@ -196,10 +205,16 @@ def main():
         <style>
         .reportview-container .main .block-container {
             max-width: 100%;
-            padding-top: 2rem;
+            padding-top: 0rem;  
             padding-right: 2rem;
             padding-left: 2rem;
             padding-bottom: 2rem;
+        }
+        .main {
+            padding-top: 0 !important; 
+        }
+        html:hover, body:hover, .reportview-container:hover, .main:hover, .block-container:hover {
+            # background-color: #ADD8E6; /* Soft Blue hover color */
         }
         html, body {
             margin: 0;
@@ -208,17 +223,65 @@ def main():
             height: 100%;
             overflow: hidden;
         }
+        .centered-title {
+            text-align: center;
+            font-size: 3em;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        .centered-tagline {
+            text-align: center;
+            font-size: 1.5em;
+            margin-top: 0;
+            color: gray;
+        }
+        .relevant-documents-header {
+          
+            font-size: 2em;
+           
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .document-card {
+            background-color: #2B3A4F;
+            border: 1px solid #3A4F63;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            color: #E0E0E0;
+        }
+        .document-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #4A90E2;
+        }
+        .document-summary {
+            font-size: 1em;
+            color: #A0A3B1;
+        }
+        .search-container {
+            width: 74vw;  
+        }
+                
         </style>
         """, unsafe_allow_html=True)
 
-    st.title("AI Powered Data Query Interface")
+    st.markdown('<div class="container">', unsafe_allow_html=True)
+    st.markdown('<h1 class="centered-title">🔍 Eureka!</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="centered-tagline">Your AI Powered Data Query Interface</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
     params = st.query_params
     if params and params["doc"] != None and 'page' in params and params["page"] == "details" and 'doc' in params:
         doc_name = params["doc"]
         display_document_details(doc_name)
     else:
-        query_input = st.text_input("Enter your search query here:", key="search_input")
+          # Search bar container
+        st.markdown('<div class="search-container">', unsafe_allow_html=True)
+        query_input = st.text_input("", "", placeholder="Type your query to discover relevant information...", key="search_input", 
+                                    help="Find relevant documents and insights from the entire database based on your search query.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if query_input:
             response = invoke_retriever(query_input)
@@ -233,7 +296,7 @@ def main():
                         seen.append(doc.page_content)
                         documents.append(doc.metadata)
 
-                st.subheader("Relevant Documents")
+                st.markdown('<h2 class="relevant-documents-header">Relevant Documents</h2>', unsafe_allow_html=True)
                 cols_per_row = 1
                 rows = [st.columns(cols_per_row) for _ in range((len(documents) + cols_per_row - 1) // cols_per_row)]
                 index = 0
