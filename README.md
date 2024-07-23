@@ -27,7 +27,7 @@ $ docker-compose up  # The API will be live on port 3015
 
 #### Get 200 OK Response
 
-```http
+```
   GET /healthcheck
 ```
 
@@ -37,7 +37,7 @@ $ docker-compose up  # The API will be live on port 3015
 
 #### Get answer to the query
 
-```http
+```
   POST /search
 ```
 
@@ -45,7 +45,7 @@ $ docker-compose up  # The API will be live on port 3015
 | :-------- | :------- | :-------------------------------- |
 | `input`      | `string` | **Required**. Query For Entire Database |
 
-```http
+```
   POST /message
 ```
 
@@ -55,7 +55,7 @@ $ docker-compose up  # The API will be live on port 3015
 | :-------- | :------- | :-------------------------------- |
 | `document_title`      | `string` | **Required**. Document Title |
 
-```http
+```
   POST /message
 ```
 
