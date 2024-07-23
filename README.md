@@ -7,21 +7,18 @@ This project aims to create an AI-powered query interface that allows users to e
 ## Run Locally
 
 Clone the project
-
+```
 $ python3 -m venv venv
 $ source venv/bin/activate
 $ python -m pip install -r requirements.txt
 $ sh entrypoint.sh     # For API : It will start at 8000 port.
 $ streamlit run app.py # For UI : It will start at 8015 port.
-
+```
 or you can just start it up with docker
-
+```
 $ docker-compose build
 $ docker-compose up  # The API will be live on port 3015
-
-
-
-
+```
 
 ## API Reference
 
